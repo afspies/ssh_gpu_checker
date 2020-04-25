@@ -6,7 +6,7 @@ Glued together from:
 * https://stackoverflow.com/a/36096801/7565759
 
 ## Usage
-Set target addresses and SSH Key location in main.py then just
+Set target addresses, SSH Key location and username in main.py then just
 ```
 python main.py
 ```

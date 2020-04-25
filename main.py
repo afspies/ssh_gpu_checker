@@ -6,6 +6,7 @@ import time
 from reprint import output
 
 JUMP_SHELL = 'shell4.doc.ic.ac.uk'
+USERNAME = 'afs219'
 SSH_KEY_LOC = os.getenv('HOME') + '/.ssh/id_rsa'
 SERVERS = ['gpu0{}'.format(x) for x in range(1, 10)] + ['gpu{}'.format(x) for x in range(10,30)]
 SSH_TIMEOUT = 1
@@ -26,7 +27,7 @@ class GPUChecker:
         print('-- Opening Jump Connection --')
         jumpbox=paramiko.SSHClient()
         jumpbox.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        jumpbox.connect(JUMP_SHELL, username='afs219', key_filename=SSH_KEY_LOC)
+        jumpbox.connect(JUMP_SHELL, username=USERNAME, key_filename=SSH_KEY_LOC)
         print('-- Succesfully Opened Jump Connection --')
         return jumpbox
 
