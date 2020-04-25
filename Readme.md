@@ -19,5 +19,5 @@ python main.py
 Needs
 ```
 paramiko
-tableprint
+reprint
 ```

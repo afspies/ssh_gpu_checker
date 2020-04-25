@@ -50,10 +50,10 @@ class GPUChecker:
         except (paramiko.ssh_exception.ChannelException, paramiko.ssh_exception.SSHException) as e:
             return "Offline"
 
-        target=paramiko.SSHClient()
+        target = paramiko.SSHClient()
         target.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         try:
-            target.connect(target, username='afs219', key_filename=SSH_KEY_LOC, sock=jumpbox_channel, timeout=SSH_TIMEOUT, auth_timeout=SSH_TIMEOUT, banner_timeout=SSH_TIMEOUT)
+            target.connect(target_addr, username='afs219', key_filename=SSH_KEY_LOC, sock=jumpbox_channel, timeout=SSH_TIMEOUT, auth_timeout=SSH_TIMEOUT, banner_timeout=SSH_TIMEOUT)
         except paramiko.ssh_exception.SSHException:
             return "No Session"
         return target
@@ -70,9 +70,9 @@ class GPUChecker:
         gpus = nvidiasmi_output.findall('gpu')
 
         gpu_infos = []
+        info = {}
         for idx, gpu in enumerate(gpus):
             model = "{:<23}".format(gpu.find('product_name').text)
-            # power_draw = gpu.find('power_readings').find('power_draw').text
             processes = gpu.findall('processes')[0]
             pids = [process.find('pid').text for process in processes if self.proc_filter.search(process.find('process_name').text)]
             numprocs = len(pids)
@@ -81,16 +81,13 @@ class GPUChecker:
             used_mem = gpu.find('fb_memory_usage').find('used').text.replace(' MiB', "")
             free = "{:<5}".format(str((len(pids) == 0)))
 
-            info = {
-                'idx': idx,
-                'model': model,
-                'numprocs': numprocs,
-                # 'power_draw': power_draw,
-                'free': free,
-                'mem': mem,
-                'gpu_util': gpu_util,
-                'used_mem': used_mem
-            }
+            info['idx'] =  idx
+            info['model'] = model
+            info['numprocs'] = numprocs
+            info['free'] = free
+            info['mem'] = mem
+            info['gpu_util'] = gpu_util
+            info['used_mem'] = used_mem
         
         return info
 
