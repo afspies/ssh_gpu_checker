@@ -8,7 +8,7 @@ from reprint import output
 JUMP_SHELL = 'shell4.doc.ic.ac.uk'
 USERNAME = 'afs219'
 SSH_KEY_LOC = os.getenv('HOME') + '/.ssh/id_rsa'
-SERVERS = ['gpu0{}'.format(x) for x in range(1, 10)] + ['gpu{}'.format(x) for x in range(10,30)]
+SERVERS = ['gpu0{}'.format(x) for x in range(1, 10)] + ['gpu{}'.format(x) for x in range(10,30)] +  ['RAY0{}'.format(x) for x in range(1, 10)] + ['RAY{}'.format(x) for x in range(10,27)]
 SSH_TIMEOUT = 1
 REFRESH_RATE = 5
 
