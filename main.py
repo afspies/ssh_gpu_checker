@@ -54,7 +54,7 @@ class GPUChecker:
         target = paramiko.SSHClient()
         target.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         try:
-            target.connect(target_addr, username='afs219', key_filename=SSH_KEY_LOC, sock=jumpbox_channel, timeout=SSH_TIMEOUT, auth_timeout=SSH_TIMEOUT, banner_timeout=SSH_TIMEOUT)
+            target.connect(target_addr, username=USERNAME, key_filename=SSH_KEY_LOC, sock=jumpbox_channel, timeout=SSH_TIMEOUT, auth_timeout=SSH_TIMEOUT, banner_timeout=SSH_TIMEOUT)
         except paramiko.ssh_exception.SSHException:
             return "No Session"
         return target
