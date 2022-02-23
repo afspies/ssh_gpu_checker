@@ -1,7 +1,7 @@
 # SSH GPU Monitor
 Some awful, brittle code** to check GPU status of multiple machines at a given host address through an SSH jumpnode.
 
-** Thanks to commits by @harrygcoppock and @minut1bc, this is now less true!
+** Thanks to PRs by @harrygcoppock and @minut1bc, this is now less true!
 
 Glued together from:
 * https://github.com/pawni/gpuobserver
