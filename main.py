@@ -20,7 +20,7 @@ REFRESH_RATE = 5
 TEXELS  = [f'texel{x:02}'  for x in range(1, 45)]
 SPRITES = [f'sprite{x:02}' for x in range(1, 39)]
 ARCS    = [f'arc{x:02}'    for x in range(1, 15)]
-GPUS    = [f'gpu{x:02}'    for x in range(1, 28)]
+GPUS    = [f'gpu{x:02}'    for x in range(1, 31)]
 EDGES   = [f'edge{x:02}'   for x in range(1, 41)]
 VERTEXS = [f'vertex{x:02}' for x in range(1, 63)]
 RAYS    = [f'ray{x:02}'    for x in range(1, 27)]
@@ -140,8 +140,11 @@ class GPUChecker:
 
         for gpu in nvidiasmi_output.findall('gpu'):
             model = gpu.find('product_name').text
-            num_procs = sum(1 for process in gpu.find('processes')
-                            if proc_filter.search(process.find('process_name').text))
+            try:
+                num_procs = sum(1 for process in gpu.find('processes')
+                                if proc_filter.search(process.find('process_name').text))
+            except TypeError:
+                num_procs='?'
             gpu_util = gpu.find('utilization').find('gpu_util').text.removesuffix(' %')
             memory_usage = gpu.find('fb_memory_usage')
             used_mem = memory_usage.find('used').text.removesuffix(' MiB')
