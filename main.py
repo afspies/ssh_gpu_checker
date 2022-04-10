@@ -140,8 +140,11 @@ class GPUChecker:
 
         for gpu in nvidiasmi_output.findall('gpu'):
             model = gpu.find('product_name').text
-            num_procs = sum(1 for process in gpu.find('processes')
-                            if proc_filter.search(process.find('process_name').text))
+            try:
+                num_procs = sum(1 for process in gpu.find('processes')
+                                if proc_filter.search(process.find('process_name').text))
+            except TypeError:
+                num_procs='?'
             gpu_util = gpu.find('utilization').find('gpu_util').text.removesuffix(' %')
             memory_usage = gpu.find('fb_memory_usage')
             used_mem = memory_usage.find('used').text.removesuffix(' MiB')
