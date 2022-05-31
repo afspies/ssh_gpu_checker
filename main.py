@@ -7,12 +7,16 @@ import re
 import time
 import paramiko
 import reprint
+import getpass
 
 # Change these according to your own configuration.
 USERNAME = 'afs219'
 SSH_KEY_PATH = os.path.expanduser('~') + '/.ssh/id_rsa'
 
-JUMP_SHELL = 'shell4.doc.ic.ac.uk'  # One of shell1, shell2, shell3, shell4 or shell5
+password = getpass.getpass("Password for encrypted key:") 
+private_key = paramiko.RSAKey.from_private_key_file(SSH_KEY_PATH, password)
+
+JUMP_SHELL = 'shell3.doc.ic.ac.uk'  # One of shell1, shell2, shell3, shell4 or shell5
 SSH_TIMEOUT = 1
 REFRESH_RATE = 5
 
@@ -76,7 +80,7 @@ class GPUChecker:
         jumpbox.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
         try:
-            jumpbox.connect(JUMP_SHELL, username=USERNAME, key_filename=SSH_KEY_PATH)
+            jumpbox.connect(JUMP_SHELL, port=22, username=USERNAME, pkey=private_key)
         except paramiko.AuthenticationException as err:
             print('Authentication failed. Check user name and SSH key configuration.')
             raise ValueError from err
@@ -109,7 +113,7 @@ class GPUChecker:
         target.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
         try:
-            target.connect(target_addr, username=USERNAME, key_filename=SSH_KEY_PATH, sock=jumpbox_channel,
+            target.connect(target_addr, username=USERNAME, pkey=private_key, sock=jumpbox_channel,
                            timeout=SSH_TIMEOUT, auth_timeout=SSH_TIMEOUT, banner_timeout=SSH_TIMEOUT)
         except paramiko.SSHException:
             return 'No Session'
