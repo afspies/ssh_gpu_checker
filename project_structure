@@ -1,0 +1,14 @@
+ssh-gpu-monitor/
+├── pyproject.toml
+├── setup.py
+├── MANIFEST.in
+├── README.md
+├── LICENSE
+└── ssh_gpu_monitor/
+    ├── __init__.py
+    ├── __main__.py
+    ├── main.py
+    ├── config_loader.py
+    ├── table_display.py
+    └── config/
+        └── config.yaml 

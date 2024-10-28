@@ -24,15 +24,15 @@
   ├── main.py
   └── requirements.txt
   ```
-- [ ] Move configuration to `config/config.yaml`
-- [ ] Implement config loading function in `main.py`
+- [X] Move configuration to `config/config.yaml`
+- [X] Implement config loading function in `main.py`
 - [ ] Create `src/ssh_checker.py` for core SSH logic
-- [ ] Create `src/table_display.py` for Rich table implementation
+- [X] Create `src/table_display.py` for Rich table implementation
 - [ ] Update `main.py` to use the new structure and modules
 
 ## 4. Additional Improvements
-- [ ] Add error handling and logging
-- [ ] Implement command-line arguments for flexibility
+- [X] Add error handling and logging
+- [X] Implement command-line arguments for flexibility
 - [ ] Write unit tests for core functions
-- [ ] Add documentation and comments throughout the code
+- [X] Add documentation and comments throughout the code
 - [ ] Create a README.md with usage instructions and project overview

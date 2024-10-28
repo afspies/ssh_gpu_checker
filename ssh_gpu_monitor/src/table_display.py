@@ -57,22 +57,23 @@ class GPUTable:
         self.data.update(new_data)
         
         # First pass: update maximum widths
-        for hostname in sorted(self.data.keys()):
-            status = self.data[hostname]
-            
+        for hostname, status in self.data.items():
             if status in ["Connecting", "Connected", "No connection"] or \
                status.startswith(("Connection", "Error", "Timeout", "SSH Error", "Unexpected error", "Parse error", "XML parse error")):
                 self.update_max_widths(hostname, [status, "—", "—", "—", "—"])
             else:
                 try:
-                    parts = [p.strip() for p in status.split("|")]
-                    if len(parts) == 5:
-                        model = parts[0]
-                        is_free = parts[1].split(":")[1].strip()
-                        num_procs = parts[2].split(":")[1].strip()
-                        gpu_util = parts[3].split(":")[1].strip()
-                        memory = parts[4].split(":")[1].strip()
-                        self.update_max_widths(hostname, [model, is_free, num_procs, gpu_util, memory])
+                    # Split multiple GPU entries
+                    gpu_entries = status.split('\n')
+                    for gpu_entry in gpu_entries:
+                        parts = [p.strip() for p in gpu_entry.split("|")]
+                        if len(parts) == 5:
+                            model = parts[0]
+                            is_free = parts[1].split(":")[1].strip()
+                            num_procs = parts[2].split(":")[1].strip()
+                            gpu_util = parts[3].split(":")[1].strip()
+                            memory = parts[4].split(":")[1].strip()
+                            self.update_max_widths(hostname, [model, is_free, num_procs, gpu_util, memory])
                 except:
                     pass
 
@@ -80,9 +81,7 @@ class GPUTable:
         self._create_table()
         
         # Second pass: add rows
-        for hostname in sorted(self.data.keys()):
-            status = self.data[hostname]
-            
+        for hostname, status in sorted(self.data.items()):
             try:
                 if status in ["Connecting", "Connected", "No connection"] or \
                    status.startswith(("Connection", "Error", "Timeout", "SSH Error", "Unexpected error", "Parse error", "XML parse error")):
@@ -96,24 +95,30 @@ class GPUTable:
                     )
                 else:
                     try:
-                        parts = [p.strip() for p in status.split("|")]
-                        if len(parts) != 5:
-                            raise ValueError(f"Invalid format: expected 5 parts, got {len(parts)}")
+                        # Split multiple GPU entries
+                        gpu_entries = status.split('\n')
+                        for i, gpu_entry in enumerate(gpu_entries):
+                            parts = [p.strip() for p in gpu_entry.split("|")]
+                            if len(parts) != 5:
+                                raise ValueError(f"Invalid format: expected 5 parts, got {len(parts)}")
+                                
+                            model = parts[0]
+                            is_free = parts[1].split(":")[1].strip()
+                            num_procs = parts[2].split(":")[1].strip()
+                            gpu_util = parts[3].split(":")[1].strip()
+                            memory = parts[4].split(":")[1].strip()
                             
-                        model = parts[0]
-                        is_free = parts[1].split(":")[1].strip()
-                        num_procs = parts[2].split(":")[1].strip()
-                        gpu_util = parts[3].split(":")[1].strip()
-                        memory = parts[4].split(":")[1].strip()
-                        
-                        self.raw_table.add_row(
-                            hostname,
-                            model,
-                            is_free,
-                            num_procs,
-                            gpu_util,
-                            memory
-                        )
+                            # Only show hostname on first GPU row
+                            display_hostname = hostname if i == 0 else ""
+                            
+                            self.raw_table.add_row(
+                                display_hostname,
+                                model,
+                                is_free,
+                                num_procs,
+                                gpu_util,
+                                memory
+                            )
                     except (IndexError, ValueError) as e:
                         logging.error(f"Failed to parse GPU info for {hostname}: {str(e)}")
                         self.raw_table.add_row(

@@ -1,0 +1,5 @@
+include README.md
+include LICENSE
+include requirements.txt
+recursive-include ssh_gpu_monitor/config *.yaml
+recursive-include ssh_gpu_monitor *.py

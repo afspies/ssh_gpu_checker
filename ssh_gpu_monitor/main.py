@@ -2,30 +2,21 @@
 
 import asyncio
 import os
-from typing import NamedTuple, Dict, List
+from typing import NamedTuple, Dict, List, Optional, Any
 import xml.etree.ElementTree as ET
 import re
 import sys
 import logging
 from logging.handlers import RotatingFileHandler
-import traceback
 from rich.live import Live
 from rich.console import Console
 import signal
-import argparse
 from pathlib import Path
 
 # Add these imports at the top
 import asyncssh
-from src.table_display import GPUTable
-
-# Configuration
-USERNAME = 'afs219'
-SSH_KEY_PATH = os.path.expanduser('~') + '/.ssh/id_rsa'
-JUMP_SHELL = 'shell4.doc.ic.ac.uk'
-SSH_TIMEOUT = 10  # seconds
-REFRESH_RATE = 5
-GPUS = [f'gpu{x:02}' for x in range(1, 31)]
+from .src.table_display import GPUTable
+from .src.config_loader import generate_targets, Target
 
 class GPUInfo(NamedTuple):
     """A class for representing a GPU machine's information."""
@@ -48,8 +39,8 @@ class GPUInfo(NamedTuple):
 class AsyncGPUChecker:
     """A class for asynchronously checking GPU machines."""
 
-    def __init__(self, servers: List[str]) -> None:
-        self.servers = servers
+    def __init__(self, targets: List[Target]) -> None:
+        self.targets = targets
         self.proc_filter = re.compile(r'.*')
         self.gpu_table = GPUTable()
         self.connections = {}
@@ -63,24 +54,27 @@ class AsyncGPUChecker:
         self.gpu_table.show_goodbye()  # Show goodbye message
         self.running = False
         
-    async def open_connection(self, target: str):
+    async def open_connection(self, target: Target):
         """Modified connection method with better error handling"""
-        logging.debug(f"Attempting to open connection to {target}")
+        logging.debug(f"Attempting to open connection to {target.host}")
         try:
             # Set up port forwarding
             listener = await asyncio.wait_for(
-                self.jump_conn.forward_local_port('', 0, target, 22),
-                timeout=SSH_TIMEOUT/2  # Shorter timeout for forwarding
+                self.jump_conn.forward_local_port('', 0, target.host, 22),
+                timeout=SSH_TIMEOUT/2
             )
             tunnel_port = listener.get_port()
             
-            # Attempt SSH connection
+            # Expand the key path
+            key_path = os.path.expanduser(target.key_path)
+            
+            # Attempt SSH connection using target-specific username and key
             conn = await asyncio.wait_for(
                 asyncssh.connect(
                     'localhost', 
                     port=tunnel_port,
-                    username=USERNAME, 
-                    client_keys=[SSH_KEY_PATH],
+                    username=target.username,
+                    client_keys=[key_path],  # Use target-specific key
                     known_hosts=None,
                     keepalive_interval=30,
                     keepalive_count_max=5
@@ -88,52 +82,52 @@ class AsyncGPUChecker:
                 timeout=SSH_TIMEOUT/2
             )
             
-            self.connections[target] = conn
-            logging.debug(f"Successfully connected to {target}")
-            return {target: "Connected"}
+            self.connections[target.host] = conn
+            logging.debug(f"Successfully connected to {target.host}")
+            return {target.host: "Connected"}
             
         except asyncio.TimeoutError:
-            logging.error(f"Timeout connecting to {target}")
-            return {target: "Connection timeout"}
+            logging.debug(f"Timeout connecting to {target.host}")
+            return {target.host: "Connection timeout"}
         except Exception as exc:
-            logging.error(f"Error connecting to {target}: {str(exc)}")
-            return {target: f"Connection error: {str(exc)}"}
+            logging.debug(f"Error connecting to {target.host}: {str(exc)}")
+            return {target.host: f"Connection error: {str(exc)}"}
 
-    async def check_single_target(self, target: str) -> Dict[str, str]:
+    async def check_single_target(self, target: Target) -> Dict[str, str]:
         """Check a single GPU target using an existing connection."""
-        logging.debug(f"Checking target: {target}")
+        logging.debug(f"Checking target: {target.host}")
         try:
-            conn = self.connections.get(target)
+            conn = self.connections.get(target.host)
             if not conn:
-                logging.warning(f"No connection for target: {target}")
-                return {target: "No connection"}
+                logging.debug(f"No connection for target: {target.host}")
+                return {target.host: "No connection"}
             
-            logging.debug(f"Running nvidia-smi command on {target}")
+            logging.debug(f"Running nvidia-smi command on {target.host}")
             result = await asyncio.wait_for(
                 conn.run('nvidia-smi -q -x', check=True),
                 timeout=SSH_TIMEOUT
             )
             if result.exit_status != 0:
-                logging.error(f"Command failed on {target} with status {result.exit_status}")
-                return {target: f"Command failed: {result.stderr}"}
+                logging.error(f"Command failed on {target.host} with status {result.exit_status}")
+                return {target.host: f"Command failed: {result.stderr}"}
             
             # Ensure we're working with a string
             output = result.stdout
             if isinstance(output, bytes):
                 output = output.decode('utf-8')
             
-            logging.debug(f"Received result from {target}, parsing GPU info")
-            return {target: self.parse_gpu_info(target, output)}
+            logging.debug(f"Received result from {target.host}, parsing GPU info")
+            return {target.host: self.parse_gpu_info(target.host, output)}
         except asyncio.TimeoutError:
-            logging.error(f"Timeout while querying {target}")
-            return {target: "Timeout"}
+            logging.debug(f"Timeout while querying {target.host}")
+            return {target.host: "Timeout"}
         except asyncssh.Error as exc:
-            logging.error(f"SSH Error for {target}: {str(exc)}")
-            return {target: f"SSH Error: {str(exc)}"}
+            logging.debug(f"SSH Error for {target.host}: {str(exc)}")
+            return {target.host: f"SSH Error: {str(exc)}"}
         except Exception as exc:
-            logging.error(f"Unexpected error for {target}: {str(exc)}")
-            logging.debug(f"Exception details for {target}:", exc_info=True)
-            return {target: f"Unexpected error: {str(exc)}"}
+            logging.debug(f"Unexpected error for {target.host}: {str(exc)}")
+            logging.debug(f"Exception details for {target.host}:", exc_info=True)
+            return {target.host: f"Unexpected error: {str(exc)}"}
 
     def parse_gpu_info(self, machine_name: str, xml_output: str) -> str:
         """Parse the GPU info from XML output."""
@@ -168,8 +162,8 @@ class AsyncGPUChecker:
                     logging.error(f"Error parsing GPU info for {machine_name}: {str(e)}")
                     return f"Error parsing GPU info: {str(e)}"
 
-            align_str = '\n' + " " * len(machine_name)
-            return align_str.join(map(str, gpu_infos))
+            # Join multiple GPU infos with newlines
+            return '\n'.join(map(str, gpu_infos))
         except ET.ParseError as e:
             logging.error(f"XML parse error for {machine_name}: {str(e)}")
             return f"XML parse error: {str(e)}"
@@ -186,7 +180,7 @@ class AsyncGPUChecker:
         logging.info("Starting GPU checker")
         try:
             # Initialize table with "Connecting" status
-            initial_data = {server: "Connecting" for server in self.servers}
+            initial_data = {target.host: "Connecting" for target in self.targets}  # Changed this line
             self.gpu_table.update_table(initial_data)
 
             # Create live display
@@ -204,7 +198,7 @@ class AsyncGPUChecker:
 
                 # Open connections to GPU servers
                 logging.info("Starting to open connections to GPU servers")
-                connection_tasks = [self.open_connection(server) for server in self.servers]
+                connection_tasks = [self.open_connection(target) for target in self.targets]
                 connection_results = await asyncio.gather(*connection_tasks, return_exceptions=True)
                 
                 # Process connection results
@@ -212,7 +206,7 @@ class AsyncGPUChecker:
                     if isinstance(result, dict):
                         self.gpu_table.update_table(result)
                     else:
-                        logging.error(f"Connection error: {str(result)}")
+                        logging.debug(f"Connection error: {str(result)}")
                 
                 live.update(self.gpu_table.table)
                 logging.info("Finished opening connections to GPU servers")
@@ -222,7 +216,7 @@ class AsyncGPUChecker:
                 while self.running:
                     try:
                         logging.debug("Starting a new round of GPU queries")
-                        tasks = [self.check_single_target(server) for server in self.servers]
+                        tasks = [self.check_single_target(target) for target in self.targets]
                         results = await asyncio.gather(*tasks, return_exceptions=True)
                         
                         # Process results
@@ -264,52 +258,69 @@ class AsyncGPUChecker:
                     pass
             logging.info("GPU checker stopped")
 
-def setup_logging(debug_mode: bool = False):
-    """Set up logging configuration based on debug mode"""
-    if not debug_mode:
+def setup_logging(config: Dict) -> None:
+    """Set up logging configuration based on debug config"""
+    # Suppress all loggers initially
+    logging.getLogger().setLevel(logging.CRITICAL)
+    asyncssh_logger = logging.getLogger('asyncssh')
+    asyncssh_logger.setLevel(logging.CRITICAL)
+
+    if not config['debug']['enabled']:
         return
 
-    # Create logs directory if it doesn't exist
-    log_dir = Path('./logs')
+    log_dir = Path(config['debug']['log_dir'])
     log_dir.mkdir(exist_ok=True)
     
     log_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-    log_file = log_dir / 'gpu_checker.log'
+    log_file = log_dir / config['debug']['log_file']
     
-    # Clear the log file
     with open(log_file, 'w') as f:
-        f.write('')  # Write an empty string to clear the file
+        f.write('')
     
-    log_handler = RotatingFileHandler(log_file, maxBytes=5*1024*1024, backupCount=2)
+    log_handler = RotatingFileHandler(
+        log_file, 
+        maxBytes=config['debug']['log_max_size'], 
+        backupCount=config['debug']['log_backup_count']
+    )
     log_handler.setFormatter(log_formatter)
     log_handler.setLevel(logging.DEBUG)
     
+    # Only add file handler if debug is enabled
     root_logger = logging.getLogger()
-    root_logger.setLevel(logging.DEBUG if debug_mode else logging.WARNING)
     root_logger.addHandler(log_handler)
 
-async def main() -> None:
-    """Main function for checking provided arguments and running GPU checker."""
-    # Set up argument parser
-    parser = argparse.ArgumentParser(description='GPU Checker')
-    parser.add_argument('--debug', action='store_true', help='Enable debug logging')
-    args = parser.parse_args()
-
-    # Check for environment variable as alternative way to enable debug mode
-    debug_mode = args.debug or os.environ.get('GPU_CHECKER_DEBUG', '').lower() in ('true', '1', 'yes')
+async def main(config: Dict[str, Any]) -> None:
+    """Main function for running GPU checker."""
+    # Remove config loading since it's now passed in
+    setup_logging(config)
     
-    setup_logging(debug_mode)
+    # Expand SSH key path
+    config['ssh']['key_path'] = os.path.expanduser(config['ssh']['key_path'])
     
-    if debug_mode:
+    if config['debug']['enabled']:
         logging.info("GPU checker started in debug mode")
     
-    if not os.path.exists(SSH_KEY_PATH):
-        if debug_mode:
-            logging.error(f'SSH key not found at {SSH_KEY_PATH}')
+    if not os.path.exists(config['ssh']['key_path']):
+        if config['debug']['enabled']:
+            logging.error(f'SSH key not found at {config["ssh"]["key_path"]}')
         print('SSH key not found. Please check the provided path.')
         return
 
-    gpu_checker = AsyncGPUChecker(GPUS)
+    # Generate target list
+    targets = generate_targets(config)
+    
+    if config['debug']['enabled']:
+        logging.info(f"Generated targets: {targets}")
+
+    # Update global constants
+    global USERNAME, SSH_KEY_PATH, JUMP_SHELL, SSH_TIMEOUT, REFRESH_RATE
+    USERNAME = config['ssh']['username']
+    SSH_KEY_PATH = config['ssh']['key_path']
+    JUMP_SHELL = config['ssh']['jump_host']
+    SSH_TIMEOUT = config['ssh']['timeout']
+    REFRESH_RATE = config['display']['refresh_rate']
+
+    gpu_checker = AsyncGPUChecker(targets)
     await gpu_checker.run()
 
 if __name__ == '__main__':

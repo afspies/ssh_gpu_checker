@@ -1,0 +1,43 @@
+# Default configuration for GPU Checker
+# SSH Configuration
+ssh:
+  username: "afs219"  # Default username
+  key_path: "~/.ssh/id_rsa"  # Default key path
+  jump_host: "shell4.doc.ic.ac.uk"
+  timeout: 10  # seconds
+
+# Target Specification
+targets:
+  # Individual targets with optional username and key_path override
+  individual:
+    - host: "spikesaurus"
+      username: "afs219"  # Override for this specific target
+      key_path: "~/.ssh/spikesaurus"  # Override key for this target
+    - host: "animal"
+      username: "alex"
+      key_path: "~/.ssh/animalai"
+  
+  # Pattern-based targets with optional username and key_path override
+  patterns:
+    - prefix: "gpu"
+      start: 1
+      end: 3
+      format: "{prefix}{number:02}"
+      username: "afs219"  # Override for all targets in this pattern
+    - prefix: "ray"
+      start: 1
+      end: 5
+      format: "{prefix}{number:02}"
+      # No username or key_path specified, will use defaults
+
+# Display Configuration
+display:
+  refresh_rate: 5  # seconds
+
+# Debug Configuration
+debug:
+  enabled: false
+  log_dir: "logs"
+  log_file: "gpu_checker.log"
+  log_max_size: 5242880  # 5MB in bytes
+  log_backup_count: 2

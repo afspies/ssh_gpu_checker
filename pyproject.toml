@@ -1,0 +1,37 @@
+[build-system]
+requires = [ "setuptools>=45", "wheel",]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ssh-gpu-monitor"
+version = "1.0.1"
+description = "A fast, asynchronous GPU monitoring tool for multiple machines through SSH"
+readme = "README.md"
+requires-python = ">=3.9"
+classifiers = [ "Programming Language :: Python :: 3", "Programming Language :: Python :: 3.9", "Programming Language :: Python :: 3.10", "Programming Language :: Python :: 3.11", "License :: OSI Approved :: MIT License", "Operating System :: OS Independent", "Development Status :: 4 - Beta", "Environment :: Console", "Topic :: System :: Monitoring", "Topic :: System :: Systems Administration",]
+dependencies = [ "rich>=10.0.0", "asyncssh>=2.13.1", "pyyaml>=6.0.1", "pyOpenSSL==23.1.1", "cryptography==40.0.2",]
+[[project.authors]]
+name = "Alex Spies"
+email = "alex@afspies.com"
+
+[project.license]
+file = "LICENSE"
+
+[project.urls]
+Homepage = "https://github.com/afspies/gpu-monitor"
+"Bug Tracker" = "https://github.com/afspies/gpu-monitor/issues"
+
+[project.scripts]
+ssh-gpu-monitor = "ssh_gpu_monitor.__main__:main_entry"
+
+[tool.setuptools.package-data]
+ssh_gpu_monitor = ["config/*.yaml"]
+
+[tool.setuptools.dynamic.readme]
+file = [ "README.md",]
+content-type = "text/markdown"
+
+[tool.setuptools.packages.find]
+where = [ ".",]
+include = [ "*",]
+exclude = [ "clean_and_build.py",]
