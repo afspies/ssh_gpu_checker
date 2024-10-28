@@ -2,7 +2,6 @@ import logging
 from rich.console import Console
 from rich.table import Table
 from rich.live import Live
-from rich.text import Text
 from rich.align import Align
 from rich.panel import Panel  # Add this import
 
@@ -74,8 +73,8 @@ class GPUTable:
                             gpu_util = parts[3].split(":")[1].strip()
                             memory = parts[4].split(":")[1].strip()
                             self.update_max_widths(hostname, [model, is_free, num_procs, gpu_util, memory])
-                except:
-                    pass
+                except (IndexError, ValueError) as e:
+                    logging.warning(f"Failed to update widths for {hostname}: {e}")
 
         # Recreate the table with updated widths
         self._create_table()

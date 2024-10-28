@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ssh-gpu-monitor"
-version = "1.0.1"
+version = "1.0.2"
 description = "A fast, asynchronous GPU monitoring tool for multiple machines through SSH"
 readme = "README.md"
 requires-python = ">=3.9"
@@ -25,7 +25,7 @@ Homepage = "https://github.com/afspies/gpu-monitor"
 ssh-gpu-monitor = "ssh_gpu_monitor.__main__:main_entry"
 
 [tool.setuptools.package-data]
-ssh_gpu_monitor = ["config/*.yaml"]
+ssh_gpu_monitor = [ "config/*.yaml",]
 
 [tool.setuptools.dynamic.readme]
 file = [ "README.md",]

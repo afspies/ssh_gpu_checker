@@ -2,7 +2,6 @@ import yaml
 import argparse
 from pathlib import Path
 from typing import Any, Dict, List, NamedTuple, Optional
-import os
 
 def get_default_config_path() -> Path:
     """Return the default config path for the package."""

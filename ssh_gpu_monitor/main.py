@@ -2,7 +2,7 @@
 
 import asyncio
 import os
-from typing import NamedTuple, Dict, List, Optional, Any
+from typing import NamedTuple, Dict, List, Any
 import xml.etree.ElementTree as ET
 import re
 import sys

@@ -1,5 +1,5 @@
 # SSH GPU Monitor 🖥️ 
-[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A fast, asynchronous GPU monitoring tool that provides real-time status of NVIDIA GPUs across multiple machines through SSH, with support for jump hosts and per-machine credentials.
@@ -51,6 +51,7 @@ ssh-gpu-monitor --get_config_path
 2. Either:
    - Copy the default config to your preferred location and use `--config` to specify it
    - Modify the default config directly
+   - Use command line options to override any config values (see below)
 
 Example config file:
 ```yaml
@@ -174,7 +175,7 @@ Special thanks to:
 - [PyYAML](https://pyyaml.org/) for configuration management
 
 ## 🔍 Similar Projects
-
+The following projects are similar in spirit, but only support a single machine:
 - [nvidia-smi-tools](https://github.com/example/nvidia-smi-tools)
 - [gpu-monitor](https://github.com/example/gpu-monitor)
 
